@@ -19,12 +19,7 @@ from __future__ import print_function
 
 import os
 import numpy as np
-import matplotlib
-matplotlib.use('TkAgg')
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-from skimage import io
-
+import cv2
 import glob
 import time
 import argparse
@@ -275,14 +270,8 @@ if __name__ == '__main__':
   phase = args.phase
   total_time = 0.0
   total_frames = 0
-  colours = np.random.rand(32, 3) #used only for display
-  if(display):
-    if not os.path.exists('mot_benchmark'):
-      print('\n\tERROR: mot_benchmark link not found!\n\n    Create a symbolic link to the MOT benchmark\n    (https://motchallenge.net/data/2D_MOT_2015/#download). E.g.:\n\n    $ ln -s /path/to/MOT2015_challenge/2DMOT2015 mot_benchmark\n\n')
-      exit()
-    plt.ion()
-    fig = plt.figure()
-    ax1 = fig.add_subplot(111, aspect='equal')
+  colours = np.random.rand(32, 3) * 255 #used only for display
+  colours.astype('uint8')
 
   if not os.path.exists('output'):
     os.makedirs('output')
@@ -304,9 +293,7 @@ if __name__ == '__main__':
 
         if(display):
           fn = 'mot_benchmark/%s/%s/img1/%06d.jpg'%(phase, seq, frame)
-          im =io.imread(fn)
-          ax1.imshow(im)
-          plt.title(seq + ' Tracked Targets')
+          img = cv2.imread(fn, cv2.IMREAD_COLOR)
 
         start_time = time.time()
         trackers = mot_tracker.update(dets)
@@ -317,14 +304,9 @@ if __name__ == '__main__':
           print('%d,%d,%.2f,%.2f,%.2f,%.2f,1,-1,-1,-1' % (frame, d[4], d[0], d[1], d[2]-d[0], d[3]-d[1]), file=out_file)
           if(display):
             d = d.astype(np.int32)
-            ax1.add_patch(patches.Rectangle((d[0], d[1]), d[2]-d[0], d[3]-d[1], fill=False, lw=3, ec=colours[d[4] % 32, :]))
+            cv2.rectangle(img, (d[0], d[1]), (d[2], d[3]), colours[d[4] % 32, :], 2)
+            cv2.imshow("in", img)
+            cv2.waitKey(1)
 
-        if(display):
-          fig.canvas.flush_events()
-          plt.draw()
-          ax1.cla()
 
   print("Total Tracking took: %.3f seconds for %d frames or %.1f FPS" % (total_time, total_frames, total_frames / total_time))
-
-  if(display):
-    print("Note: to get real runtime results run without the option: --display")
